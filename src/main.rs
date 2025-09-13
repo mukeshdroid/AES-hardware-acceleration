@@ -10,7 +10,36 @@ fn encrypt_in_place(cipher: &Aes128, data: &mut [u8]) {
     }
 }
 
+fn check_if_cpu_supports_aes() -> bool {
+    #[cfg(target_arch = "aarch64")]
+    {
+        std::arch::is_aarch64_feature_detected!("aes")
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        std::arch::is_x86_feature_detected!("aes")
+    }
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
+    {
+        false
+    }
+}   
+
+fn check_if_aes_is_enabled() -> bool {
+    #[cfg(any(aes_armv8, target_feature = "aes"))]
+    {
+        true
+    }
+    #[cfg(not(any(aes_armv8, target_feature = "aes")))]
+    {
+        false
+    }
+}
+
 fn main() {
+    println!("CPU reports AES feature: {}", check_if_cpu_supports_aes());
+    println!("AES HW acceleration enabled in build: {}", check_if_aes_is_enabled());
+
     let size_bytes: usize = 64 * 1024 * 1024;
     let mut buf = vec![0u8; size_bytes];
 
@@ -31,16 +60,30 @@ fn main() {
     let throughput = mb / secs;
 
     // Helpful hint about which backend you intended to use
-    #[cfg(aes_armv8)]
-    let backend = "ARMv8 HW AES (aes_armv8)";
-    #[cfg(not(aes_armv8))]
-    let backend = "Software AES (no aes_armv8)";
+    let backend = {
+        #[cfg(aes_armv8)]
+        {
+            "ARMv8 HW AES (aes_armv8)"
+        }
+        #[cfg(all(target_feature = "aes", target_arch = "x86_64", not(aes_armv8)))]
+        {
+            "x86_64 AES-NI HW AES (target_feature=aes)"
+        }
+        #[cfg(not(any(aes_armv8, all(target_feature = "aes", target_arch = "x86_64"))))]
+        {
+            "Software AES (no hardware acceleration)"
+        }
+    };
 
     println!("Encrypted {:.2} MiB in {:.3} s -> {:.1} MiB/s [{}]", mb, secs, throughput, backend);
 
-    // Optional: runtime CPU feature probe on aarch64
+    // Optional: runtime CPU feature probe
     #[cfg(target_arch = "aarch64")]
     {
         println!("CPU reports AES feature: {}", std::arch::is_aarch64_feature_detected!("aes"));
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        println!("CPU reports AES-NI feature: {}", std::arch::is_x86_feature_detected!("aes"));
     }
 }

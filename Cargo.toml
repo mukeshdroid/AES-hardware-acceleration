@@ -3,6 +3,9 @@ name = "aes_hardware"
 version = "0.1.0"
 edition = "2024"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(aes_armv8)'] }
+
 [dependencies]
 aes = "0.8"
 cipher = "0.4"
