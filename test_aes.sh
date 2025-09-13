@@ -49,7 +49,12 @@ run_program() {
 echo -e "\n${YELLOW}=== Testing WITHOUT hardware acceleration ===${NC}"
 
 echo -e "${BLUE}Building without AES acceleration...${NC}"
-cargo build -r 2>/dev/null
+if [[ "$ARCH" == "arm64" ]] || [[ "$ARCH" == "aarch64" ]]; then
+    cargo build -r 2>/dev/null
+else
+    # For x86, explicitly disable AES to force software implementation
+    RUSTFLAGS="-C target-feature=-aes" cargo build -r 2>/dev/null
+fi
 
 run_program "software-only"
 check_aes_instructions "software-only" || true
