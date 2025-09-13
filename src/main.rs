@@ -26,11 +26,15 @@ fn check_if_cpu_supports_aes() -> bool {
 }   
 
 fn check_if_aes_is_enabled() -> bool {
-    #[cfg(any(aes_armv8, target_feature = "aes"))]
+    #[cfg(aes_force_soft)]
+    {
+        false  // Explicitly disabled by aes_force_soft
+    }
+    #[cfg(all(not(aes_force_soft), any(aes_armv8, target_feature = "aes")))]
     {
         true
     }
-    #[cfg(not(any(aes_armv8, target_feature = "aes")))]
+    #[cfg(all(not(aes_force_soft), not(any(aes_armv8, target_feature = "aes"))))]
     {
         false
     }
@@ -61,15 +65,19 @@ fn main() {
 
     // Helpful hint about which backend you intended to use
     let backend = {
-        #[cfg(aes_armv8)]
+        #[cfg(aes_force_soft)]
+        {
+            "Software AES (aes_force_soft enabled)"
+        }
+        #[cfg(all(not(aes_force_soft), aes_armv8))]
         {
             "ARMv8 HW AES (aes_armv8)"
         }
-        #[cfg(all(target_feature = "aes", target_arch = "x86_64", not(aes_armv8)))]
+        #[cfg(all(not(aes_force_soft), target_feature = "aes", target_arch = "x86_64", not(aes_armv8)))]
         {
             "x86_64 AES-NI HW AES (target_feature=aes)"
         }
-        #[cfg(not(any(aes_armv8, all(target_feature = "aes", target_arch = "x86_64"))))]
+        #[cfg(all(not(aes_force_soft), not(any(aes_armv8, all(target_feature = "aes", target_arch = "x86_64")))))]
         {
             "Software AES (no hardware acceleration)"
         }

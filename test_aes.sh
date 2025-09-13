@@ -52,8 +52,8 @@ echo -e "${BLUE}Building without AES acceleration...${NC}"
 if [[ "$ARCH" == "arm64" ]] || [[ "$ARCH" == "aarch64" ]]; then
     cargo build -r 2>/dev/null
 else
-    # For x86, explicitly disable AES to force software implementation
-    RUSTFLAGS="-C target-feature=-aes" cargo build -r 2>/dev/null
+    # For x86, use aes_force_soft to force pure software implementation
+    RUSTFLAGS="--cfg aes_force_soft" cargo build -r 2>/dev/null
 fi
 
 run_program "software-only"

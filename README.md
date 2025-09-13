@@ -84,15 +84,23 @@ aeskeygenassist $0x1, %xmm0, %xmm1
 
 ### Without hardware acceleration
 
-When compiled without the appropriate flags:
-
+#### ARM (software-only)
 ```bash
 cargo build -r
 ```
 
-The objdump will show no AES hardware instructions, indicating software-only implementation:
+#### x86_64 (force software-only)
+The AES crate uses runtime detection by default on x86_64, so you need to explicitly force software implementation:
+
+```bash
+RUSTFLAGS="--cfg aes_force_soft" cargo build -r
+```
+
+The objdump will show no AES hardware instructions, indicating pure software implementation:
 
 ```bash
 rust-objdump -d target/release/aes_hardware | grep -Ei 'aes(enc|dec|imc|keygenassist)|vaes'
-# No output - using software AES implementation
+# No output - using pure software AES implementation
 ```
+
+**Note**: On x86_64, simply using `cargo build -r` without flags will still use AES-NI instructions due to runtime detection. The `aes_force_soft` configuration flag is required to get true software-only implementation.
